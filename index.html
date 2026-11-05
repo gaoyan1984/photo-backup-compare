@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>照片备份对比 / 补齐工具</title>
+<style>
+:root{
+  --bg:#0f1115; --panel:#171a21; --panel2:#1d212a; --line:#272c36;
+  --tx:#e6e8eb; --tx2:#8b98a5; --tx3:#c3cbd4;
+  --red:#ff6b6b; --grn:#3ddc84; --yel:#ffd166; --blu:#5aa9ff; --pur:#b388ff;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,"Microsoft YaHei","Segoe UI",sans-serif;
+     background:var(--bg);color:var(--tx);font-size:14px}
+header{padding:18px 24px;border-bottom:1px solid var(--line);background:var(--panel);
+       display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+header h1{font-size:19px;margin:0;font-weight:600}
+header .sub{color:var(--tx2);font-size:12.5px}
+main{max-width:1240px;margin:0 auto;padding:22px 24px 80px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+      padding:18px 20px;margin-bottom:18px}
+.card h2{font-size:15px;margin:0 0 14px;color:var(--tx3);font-weight:600;
+         display:flex;align-items:center;gap:8px}
+.card h2 .n{background:var(--blu);color:#08121f;border-radius:5px;padding:1px 7px;
+            font-size:11px;font-weight:700}
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:1fr 1fr}
+.g3{grid-template-columns:repeat(3,1fr)}
+label.f{display:block;font-size:12px;color:var(--tx2);margin-bottom:6px}
+input[type=text],select{padding:8px 10px;background:var(--panel2);border:1px solid var(--line);
+      border-radius:8px;color:var(--tx);font-size:13px;width:100%;font-family:Consolas,monospace}
+input[type=text]:focus,select:focus{outline:none;border-color:var(--blu)}
+select{font-family:inherit}
+.row{display:flex;gap:8px;align-items:center}
+.row>input[type=text]{flex:1}
+button{padding:9px 16px;border-radius:8px;border:1px solid var(--line);
+      background:var(--panel2);color:var(--tx);cursor:pointer;font-size:13px;font-family:inherit}
+button:hover{border-color:var(--blu);color:#fff}
+button.pri{background:var(--blu);border-color:var(--blu);color:#08121f;font-weight:700}
+button.pri:hover{filter:brightness(1.1)}
+button.grn{background:var(--grn);border-color:var(--grn);color:#062012;font-weight:700}
+button.danger{border-color:var(--red);color:var(--red)}
+button:disabled{opacity:.4;cursor:not-allowed}
+.chk{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--tx3);cursor:pointer;
+     user-select:none;padding:5px 0}
+.chk input{accent-color:var(--blu);width:15px;height:15px;cursor:pointer}
+.pill{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600}
+.pill.red{background:rgba(255,107,107,.15);color:var(--red)}
+.pill.grn{background:rgba(61,220,132,.15);color:var(--grn)}
+.pill.yel{background:rgba(255,209,102,.15);color:var(--yel)}
+.pill.blu{background:rgba(90,169,255,.15);color:var(--blu)}
+.stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+.st{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.st .k{font-size:11.5px;color:var(--tx2)}
+.st .v{font-size:20px;font-weight:600;margin-top:3px;font-family:Consolas,monospace}
+.v.red{color:var(--red)}.v.grn{color:var(--grn)}.v.yel{color:var(--yel)}.v.blu{color:var(--blu)}
+.prog{height:8px;background:var(--panel2);border-radius:5px;overflow:hidden;margin:10px 0 8px}
+.prog>i{display:block;height:100%;background:linear-gradient(90deg,var(--blu),var(--grn));
+        width:0;transition:width .25s}
+.log{background:#0b0d11;border:1px solid var(--line);border-radius:8px;padding:10px 12px;
+     font-family:Consolas,monospace;font-size:11.5px;color:var(--tx2);height:180px;
+     overflow:auto;white-space:pre-wrap;line-height:1.55}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th,td{padding:7px 9px;text-align:left;border-bottom:1px solid var(--line)}
+th{background:var(--panel2);color:var(--tx2);position:sticky;top:0;font-weight:600;font-size:12px}
+td.path{font-family:Consolas,monospace;font-size:11.5px;word-break:break-all}
+.scroll{max-height:340px;overflow:auto;border:1px solid var(--line);border-radius:8px}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.tab{padding:7px 14px;border-radius:8px;border:1px solid var(--line);cursor:pointer;
+     font-size:12.5px;color:var(--tx2);background:var(--panel2)}
+.tab.on{border-color:var(--blu);color:#fff;background:rgba(90,169,255,.12)}
+.hide{display:none!important}
+.note{font-size:12px;color:var(--tx2);line-height:1.75;margin-top:10px;
+      border-left:2px solid var(--line);padding-left:12px}
+.tgt{border:1px solid var(--line);border-radius:10px;padding:14px;background:var(--panel2);margin-bottom:12px}
+.extbox{max-height:112px;overflow:auto;background:var(--panel2);border:1px solid var(--line);
+        border-radius:8px;padding:8px 10px;display:flex;flex-wrap:wrap;gap:2px 12px}
+.badge{font-size:11px;padding:2px 8px;border-radius:6px;background:rgba(184,136,255,.15);
+       color:var(--pur);font-family:Consolas,monospace}
+a.dl{color:var(--blu);text-decoration:none;font-size:12.5px}
+a.dl:hover{text-decoration:underline}
+</style>
+</head>
+<body>
+<header>
+  <h1>照片备份对比 / 补齐工具</h1>
+  <span class="sub">源盘 → 备份盘逐项比对 · 保持原目录结构与文件名 · 只复制缺失文件，绝不删除</span>
+</header>
+<main>
+
+<div class="card hide" id="offline" style="border-color:var(--red);background:rgba(255,107,107,.08)">
+  <h2 style="color:var(--red)">⚠ 连不上后台服务，硬盘列表加载不出来</h2>
+  <div class="note" style="border-color:var(--red)">
+    这个页面<b>不是单纯的网页</b>，它需要一个后台程序在电脑上跑着才能读到硬盘。
+    服务没起来时，页面就会是空白的——这正是你现在看到的情况。
+  </div>
+  <div style="margin-top:14px">
+    <label class="f">请按下面两步操作：</label>
+    <div style="line-height:2;font-size:13.5px">
+      <b>第 1 步</b>　到文件夹 <code>E:\WorkBuddy\photo_backup_tool\</code><br>
+      <b>第 2 步</b>　<b>双击「启动.bat」</b>，会弹出一个黑色命令行窗口，<b>不要关它</b>
+    </div>
+  </div>
+  <div style="margin-top:12px">
+    <button class="pri" onclick="location.reload()">启动好了，重试</button>
+    <span style="color:var(--tx2);font-size:12px;margin-left:10px">页面每 3 秒自动重试一次</span>
+  </div>
+  <div class="note" style="margin-top:12px">
+    嫌每次都手动启动麻烦？去装一下开机自启，开机后工具就自己跑起来了：<br>
+    双击 <code>E:\WorkBuddy\photo_backup_tool\装开机自启.bat</code>（只需设一次）
+  </div>
+</div>
+
+<!-- 1 配置 -->
+<div class="card">
+  <h2><span class="n">1</span>选择目录</h2>
+  <div class="grid g2">
+    <div>
+      <label class="f">源盘（照片主目录所在盘，可多选）</label>
+      <div id="srcList" style="margin-bottom:10px"></div>
+      <button onclick="addSrc()">+ 添加源目录</button>
+      <div class="note" id="srcInfo">可添加多个源盘；多个源盘会合并成一份「主库（并集）」参与比对。选择盘符后可点「浏览」逐级定位到照片文件夹。</div>
+    </div>
+    <div>
+      <label class="f">备份盘（可多选，建议 2 个）</label>
+      <div id="dstList" style="margin-bottom:10px"></div>
+      <button onclick="addDst()">+ 添加备份目录</button>
+    </div>
+  </div>
+</div>
+
+<!-- 2 范围 -->
+<div class="card">
+  <h2><span class="n">2</span>比对范围</h2>
+  <div class="grid g3">
+    <div>
+      <label class="f">文件类型</label>
+      <label class="chk"><input type="checkbox" id="allExt" onchange="syncExtBox()">包含所有类型（不限后缀）</label>
+      <div class="extbox" id="extBox"></div>
+    </div>
+    <div>
+      <label class="f">额外排除的文件夹（每行一个，可留空）</label>
+      <input type="text" id="ignore" placeholder="例如 临时\  缓存\">
+      <label class="f" style="margin-top:12px">备份盘关系</label>
+      <label class="chk"><input type="checkbox" id="poolMode" checked>
+        <span>多个备份盘<b>合并视为一个备份池</b>（任一盘有该文件就算已备份）</span></label>
+      <div class="note" style="margin-top:2px">
+        勾上时：H、I 盘合起来算一份备份，不会把「H 有、I 没有」误判成缺失。<br>
+        不勾时：逐个盘单独比对，适合想确认「每个盘各自缺什么」。
+      </div>
+      <label class="f" style="margin-top:12px">深度校验</label>
+      <label class="chk"><input type="checkbox" id="vhash">计算 MD5（慢很多，能查出「大小相同但内容不同」）</label>
+    </div>
+    <div>
+      <label class="f">操作</label>
+      <button class="pri" style="width:100%;margin-bottom:9px" onclick="startScan()">开始扫描比对</button>
+      <div class="note">先扫描出报告，确认无误后再执行补齐。扫描是只读操作，安全。</div>
+    </div>
+  </div>
+</div>
+
+<!-- 进度 -->
+<div class="card hide" id="cardProg">
+  <h2 id="progTitle">执行中</h2>
+  <div class="prog"><i id="progBar"></i></div>
+  <div id="progDetail" style="font-size:12px;color:var(--tx2);font-family:Consolas,monospace;min-height:18px"></div>
+  <button class="danger" style="margin-top:10px" onclick="cancelJob()">中止</button>
+</div>
+
+<!-- 扫描结果 -->
+<div class="card hide" id="cardRes">
+  <h2><span class="n">3</span>比对报告
+    <span style="margin-left:auto;font-weight:400;font-size:12px;color:var(--tx2)" id="resTime"></span>
+  </h2>
+  <div id="tgtBlocks"></div>
+</div>
+
+<!-- 日志 -->
+<div class="card">
+  <h2>运行日志</h2>
+  <div class="log" id="log"></div>
+</div>
+
+</main>
+<script>
+let JOB=null, POLL=null, DRIVES=[], RES=null, CUR_EXT=['__ALL__'];
+
+const $=id=>document.getElementById(id);
+const fmt=b=>{for(const u of ['B','KB','MB','GB','TB']){if(Math.abs(b)<1024||u==='TB')return u==='B'?b+' B':b.toFixed(1)+' '+u;b/=1024}return b+' TB'};
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function log(t,cls){const el=$('log');el.innerHTML+=`<span style="color:${cls||'#8b98a5'}">${esc(t)}</span>\n`;
+  el.scrollTop=el.scrollHeight;}
+function post(u,b){return fetch(u,{method:'POST',headers:{'Content-Type':'application/json'},
+  body:JSON.stringify(b||{})}).then(r=>r.json());}
+
+// ---- 初始化
+async function boot(){
+  try{
+    const d=await fetch('/api/drives').then(r=>r.json());
+    DRIVES=d.drives;
+    addSrc(d.guess.src);
+    $('srcList').firstElementChild.querySelector('input').value=d.guess.src+':\\';
+    $('extBox').innerHTML=d.exts.map(e=>`<label class="chk" style="width:auto;padding:1px 0">
+      <input type="checkbox" class="ext" value="${e}" checked>${e.replace('.','').toUpperCase()}</label>`).join('');
+    (d.guess.dst||[]).forEach(L=>addDst(L));
+    $('offline').classList.add('hide');
+    log('就绪。已按容量自动推荐：源盘 '+d.guess.src+':，备份盘 '+(d.guess.dst||[]).join(' / ')+':');
+  }catch(e){
+    // 服务没起来时，页面原本只会静默空白；这里必须明确告诉用户怎么办
+    $('offline').classList.remove('hide');
+    log('✘ 连不上后台服务：'+e.message,'var(--red)');
+    setTimeout(boot,3000);   // 服务起来后自动恢复
+  }
+}
+boot();
+
+function driveInfo(L){return DRIVES.find(x=>x.letter===L)||{free_h:'?',total_h:'?'}}
+
+// ---- 源目录（可多选）
+function addSrc(letter){
+  const box=$('srcList');
+  const avail=DRIVES.map(x=>x.letter);
+  const id='src'+(box.children.length+1)+'_'+Math.random().toString(36).slice(2,5);
+  const d=document.createElement('div');
+  d.className='row';d.style.marginBottom='8px';d.id=id;
+  d.innerHTML=`<select style="max-width:120px">${avail.map(l=>
+      `<option value="${l}" ${l===letter?'selected':''}>${l}: (剩 ${driveInfo(l).free_h})</option>`).join('')}</select>
+    <input type="text" placeholder="源目录，例如 D:\\照片 或 D:\\" >
+    <button onclick="browseDir('${id}')">浏览</button>
+    <button class="danger" onclick="if($('srcList').children.length>1)this.closest('.row').remove();else alert('至少保留一个源目录')">✕</button>`;
+  box.appendChild(d);
+}
+function collectSrc(){
+  return [...$('srcList').children].map(r=>({
+    letter:r.querySelector('select').value,
+    path:r.querySelector('input').value.trim()
+  })).filter(x=>x.path);
+}
+
+// ---- 备份目录
+function addDst(letter){
+  const box=$('dstList');
+  const avail=DRIVES.map(x=>x.letter);
+  const id='dst'+(box.children.length+1)+'_'+Math.random().toString(36).slice(2,5);
+  const d=document.createElement('div');
+  d.className='row';d.style.marginBottom='8px';d.id=id;
+  d.innerHTML=`<select style="max-width:120px">${avail.map(l=>
+      `<option value="${l}" ${l===letter?'selected':''}>${l}: (剩 ${driveInfo(l).free_h})</option>`).join('')}</select>
+    <input type="text" placeholder="备份根目录，例如 D:\\照片备份" >
+    <button onclick="browseDir('${id}')">浏览</button>
+    <button class="danger" onclick="this.closest('.row').remove()">✕</button>`;
+  box.appendChild(d);
+}
+function collectDst(){
+  return [...$('dstList').children].map(r=>({
+    letter:r.querySelector('select').value,
+    path:r.querySelector('input').value.trim()
+  })).filter(x=>x.path);
+}
+
+// ---- 目录浏览：调用后端列出子目录，逐级点击
+async function browseDir(target){
+  let row = target==='src' ? $('srcList').firstElementChild : $(target);
+  let cur = row ? row.querySelector('input').value.trim() : '';
+  if(!cur) cur=(DRIVES[0]?DRIVES[0].letter:'C')+':\\';
+  const r=await post('/api/folder',{path:cur});
+  if(r.error){alert('无法读取：'+r.error);return;}
+  const list=['.. '+r.path, ...r.dirs.map(d=>r.path.replace(/\\?$/,'')+'\\'+d)];
+  const pick=prompt('选择目录（复制名字或直接输入新路径）：\n\n'+list.slice(0,25).join('\n')
+    + (r.dirs.length>25?'\n… 更多子目录':''), r.path);
+  if(!pick) return;
+  const val=pick.startsWith('.. ')?pick.slice(3):pick;
+  if(row){ row.querySelector('input').value=val; if(/^[A-Z]:/i.test(val)) row.querySelector('select').value=val[0].toUpperCase(); }
+}
+
+function syncExtBox(){ $('extBox').style.opacity=$('allExt').checked?.35:1; }
+syncExtBox();
+
+// ---- 扫描
+async function startScan(){
+  const srcs=collectSrc();
+  const dsts=collectDst();
+  if(!srcs.length){alert('请至少添加一个源目录');return;}
+  if(!dsts.length){alert('请至少添加一个备份目录');return;}
+  if(dsts.some(d=>!d.path)){alert('备份目录不能为空');return;}
+  const exts=$('allExt').checked?['__ALL__']:[...document.querySelectorAll('.ext:checked')].map(x=>x.value);
+  CUR_EXT=exts;
+  $('cardRes').classList.add('hide');
+  showProg('扫描比对中');
+  const r=await post('/api/scan',{src_roots:srcs.map(s=>s.path),
+    dst_roots:dsts.map(d=>d.path), exts,
+    verify_hash:$('vhash').checked,
+    pool:$('poolMode').checked,
+    ignore_dirs:$('ignore').value.split(/[,;，；\n]/)});
+  if(r.error){alert(r.error);hideProg();return;}
+  JOB=r.id; poll('scan');
+}
+
+function showProg(t){$('cardProg').classList.remove('hide');$('progTitle').textContent=t;$('progBar').style.width='2%'}
+function hideProg(){$('cardProg').classList.add('hide')}
+async function cancelJob(){ if(JOB){await post('/api/cancel',{id:JOB});log('已请求中止…','var(--yel)')} }
+
+function poll(kind){
+  clearTimeout(POLL);
+  POLL=setTimeout(async()=>{
+    const j=await fetch('/api/job?id='+JOB).then(r=>r.json()).catch(()=>null);
+    if(!j) return;
+    $('progBar').style.width=Math.max(2,(j.progress||0)*100).toFixed(1)+'%';
+    $('progDetail').textContent=`${j.stage}　${j.detail||''}　[${(j.elapsed||0).toFixed(0)}s]`;
+    (j.logs||[]).forEach(t=>log(t));
+    if(j.state==='running'){poll(kind);return;}
+    hideProg();
+    if(j.state==='error'){log('✗ 失败：'+j.error,'var(--red)');alert('失败：'+j.error);}
+    else if(j.state==='cancelled'){log('已中止','var(--yel)');}
+    else if(kind==='scan'){render(j.result,j.logs||[]);}
+    else {log('✔ 复制任务完成','var(--grn)');render(j.result,j.logs||[]);}
+  },600);
+}
+
+// ---- 渲染报告
+function render(res,logs){
+  RES=res;$('cardRes').classList.remove('hide');
+  const multiSrc=(res.src_roots&&res.src_roots.length>1);
+  $('resTime').innerHTML=`扫描 ${res.src_stats.files} 个源文件（${res.src_roots.length} 个源盘合并为主库），用时 ${res.src_stats.elapsed.toFixed(1)} 秒
+    <a class="dl" href="/api/openout" style="margin-left:12px">📂 打开报告文件夹</a>`;
+  if(multiSrc){
+    $('resTime').insertAdjacentHTML('beforeend',
+      `<div class="note" style="margin-top:6px;border-color:var(--pur,#b388ff)">
+        已合并 ${res.src_roots.length} 个源盘为主库（并集）：任一源盘有某文件即视为已有。
+        反向补齐（备份盘→源盘）会把多余文件写回第一个源盘 <b>${esc(res.src_root)}</b>。</div>`);
+  }
+  if(res.src_errors&&res.src_errors.length) log('⚠ 源盘有 '+res.src_errors.length+' 处无法访问（通常是无权限系统目录，不影响照片比对）','var(--yel)');
+  $('tgtBlocks').innerHTML=res.targets.map((t,i)=>block(t,i)).join('');
+  log('扫描完成。','var(--grn)');
+  document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>showTab(t.dataset.t,t.dataset.i));
+}
+
+function block(t,i){
+  const s=t.summary,c=t.capacity;
+  const isPool=!!(t.pool_members&&t.pool_members.length>1);
+  const warn=!c.enough?'<span class="pill red">目标盘空间不足</span>':'<span class="pill grn">空间充足</span>';
+  const capLines=(t.capacities||[c]).map(x=>
+    `<div style="font-size:12px;color:var(--tx2);font-family:Consolas,monospace;margin-top:3px">
+      ${esc(x.dst_root)}　剩 ${fmt(x.free)}　${x.enough?'<span style="color:var(--grn)">够装</span>':'<span style="color:var(--red)">装不下</span>'}</div>`).join('');
+  const tags=['missing','content_dup','extra_content_dup','intra_src_dup','same','size_diff','hash_diff','extra'];
+  // 只有数量>0的 tab 才显示
+  const showTags=tags.filter(k=>(t.summary[k]||0)>0||k==='missing');
+  return `<div class="tgt" data-i="${i}">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+      <b style="font-family:Consolas,monospace">${esc(t.dst_root)}</b>
+      ${isPool?'<span class="pill" style="background:rgba(179,136,255,.15);color:#b388ff">合并备份池 · '+t.pool_members.length+' 个盘</span>':''}
+      ${isPool?'':warn}
+      <span style="color:var(--tx2);font-size:12px">
+        池内共 ${s.dst_files} 个文件 / ${fmt(s.dst_bytes)}　·　需补 ${fmt(s.missing_bytes)}</span>
+    </div>
+    ${isPool?`<div style="margin-bottom:12px">${capLines}</div>`:''}
+    <div class="stats">
+      <div class="st"><div class="k">一致</div><div class="v grn">${s.same}</div></div>
+      <div class="st"><div class="k">缺失（需复制）</div><div class="v red">${s.missing}</div></div>
+      <div class="st"><div class="k">缺失体积</div><div class="v red">${fmt(s.missing_bytes)}</div></div>
+      <div class="st"><div class="k">大小不一致</div><div class="v yel">${s.size_diff}</div></div>
+      <div class="st"><div class="k">内容不同</div><div class="v yel">${s.hash_diff}</div></div>
+      <div class="st"><div class="k">备份盘多余</div><div class="v blu">${s.extra}</div></div>
+      <div class="st"><div class="k">同内容（不互备）</div><div class="v blu">${(s.content_dup||0)+(s.extra_content_dup||0)}</div></div>
+      <div class="st"><div class="k">源盘内部重复</div><div class="v blu">${s.intra_src_dup||0}</div></div>
+    </div>
+    ${((s.content_dup||0)+(s.extra_content_dup||0)+(s.intra_src_dup||0))>0?`<div class="note" style="margin-top:10px;border-color:var(--pur,#b388ff)">
+      <b>${s.content_dup||0}</b> 个文件备份盘已有相同内容（只是路径/名字不同），<b>不会复制</b>；
+      <b>${s.extra_content_dup||0}</b> 个文件源盘已有相同内容，<b>不会补回</b>；
+      <b>${s.intra_src_dup||0}</b> 个文件源盘内部有多个相同副本，<b>只复制一个</b>到备份盘。
+      这样两个盘互相当备份，也不会把同一张照片/视频复制成多份。详见各「同内容」标签页。</div>`:''}
+    ${t.groups.length?`<div style="margin-top:12px"><label class="f">缺失文件分布（按顶层文件夹）</label>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">${t.groups.map(g=>
+        `<span class="badge">${esc(g.name)} ×${g.count} · ${fmt(g.bytes)}</span>`).join('')}</div></div>`:''}
+    <div class="tabs" style="margin-top:14px">
+      ${showTags.map((k,idx)=>`<div class="tab ${idx===0?'on':''}" data-t="${k}" data-i="${i}">
+        ${({missing:'缺失清单',content_dup:'同内容(不复制)',extra_content_dup:'同内容(不补回)',intra_src_dup:'源盘内部重复',same:'一致',size_diff:'大小不一致',hash_diff:'内容不同',extra:'备份盘多余'})[k]}
+        ${s[k]?`<span class="pill blu">${s[k]}</span>`:''}</div>`).join('')}
+    </div>
+    <div id="tb_${i}">${tabBody(t,'missing',i)}</div>
+    ${reportLinks(t,i)}
+    <div style="margin-top:14px;padding-top:14px;border-top:1px dashed var(--line)">
+      <label class="f">正向补齐：源盘 → 这个备份盘</label>
+      <label class="chk"><input type="checkbox" id="dry_${i}" checked>先预演（只列计划，不实际复制）</label>
+      <label class="chk"><input type="checkbox" id="ovw_${i}">覆盖已存在文件（默认跳过，绝不删除）</label>
+      <button class="grn" onclick="doCopy(${i},false)">把缺失的 ${s.missing} 个文件补到备份盘</button>
+      <div class="note" style="margin-top:6px">只复制真正缺失的文件；备份盘已有相同内容的不复制、源盘内部重复的只复制一份（见「同内容」标签页），两个盘互备也不会制造重复。照片和视频一起备份。</div>
+      <div style="margin-top:14px;padding-top:14px;border-top:1px dashed var(--line)">
+        <label class="f">反向补齐：这个备份盘 → 源盘</label>
+        <label class="chk"><input type="checkbox" id="rdry_${i}" checked>先预演（只列计划，不实际复制）</label>
+        <button onclick="doCopy(${i},true)"
+          ${s.extra?'':'disabled'}>把多余的 ${s.extra} 个文件补回源盘</button>
+        <div class="note" style="margin-top:6px">源盘已有相同内容的文件不会补回（见「同内容」标签），避免把重复照片写回源盘。</div>
+        <div class="note" style="margin-top:8px">反向操作会<b>写入源盘</b>。源盘容量：
+          ${t.reverse_capacity?fmt(t.reverse_capacity.free)+' 可用，需 '+fmt(t.reverse_capacity.need)+
+            (t.reverse_capacity.enough?'（够）':'（<b style="color:var(--red)">不够</b>）'):'-'}</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ---- 报告下载入口
+function reportLinks(t,i){
+  const r=(t.reports&&t.reports[0])||{};
+  if(!r.csv&&!r.html)
+    return `<div class="note" style="margin-top:12px">报告文件未生成（可到 <code>报告输出\\</code> 文件夹查看）。</div>`;
+  const name='对比报告_'+((t.dst_root||'').replace(/[\\/:*?"<>|]/g,'_').slice(-24)||'备份盘');
+  return `<div style="margin-top:14px;padding:12px 14px;background:var(--panel2);border:1px solid var(--line);border-radius:10px">
+    <label class="f" style="margin-bottom:8px">📄 本次比对报告</label>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+      ${r.csv?`<a class="dl" href="/api/download?path=${encodeURIComponent(r.csv)}" download>⬇ 下载 CSV（Excel 可开）</a>`:''}
+      ${r.html?`<a class="dl" href="/api/download?path=${encodeURIComponent(r.html)}" download>⬇ 下载 HTML（直接看）</a>`:''}
+      <span style="color:var(--tx2);font-size:12px">已存到 <code>E:\\WorkBuddy\\photo_backup_tool\\报告输出\\</code></span>
+    </div>
+    <div class="note" style="margin-top:8px">CSV 用 Excel 打开做筛选统计；HTML 双击就能看，适合存档或发给别人。</div>
+  </div>`;
+}
+
+function tabBody(t,k,i){
+  if(k==='missing'){
+    if(!t.summary.missing) return '<div class="note">该备份盘已完整包含源盘全部文件，正向无需操作。</div>';
+    const g=t.groups.map(x=>`<tr><td class="path">${esc(x.name)}</td><td>${x.count}</td><td>${fmt(x.bytes)}</td></tr>`).join('');
+    const sm=(t.sample_missing||[]).map(r=>`<tr><td class="path">${esc(r.rel)}</td><td>${fmt(r.size)}</td></tr>`).join('');
+    return `<div class="scroll" style="max-height:230px"><table><tr><th>顶层文件夹</th><th>文件数</th><th>体积</th></tr>${g}</table></div>
+      <div style="margin-top:10px" class="scroll"><table><tr><th>缺失文件预览（前 50 条）</th><th>大小</th></tr>${sm}</table></div>
+      <div class="note">完整清单见下方导出的 CSV / HTML 报告。</div>`;
+  }
+  if(k==='extra'){
+    if(!t.summary.extra) return '<div class="note">备份盘没有源盘之外的多余文件，反向无需操作。</div>';
+    const g=(t.extra_groups||[]).map(x=>`<tr><td class="path">${esc(x.name)}</td><td>${x.count}</td><td>${fmt(x.bytes)}</td></tr>`).join('');
+    const sm=(t.sample_extra||[]).map(r=>`<tr><td class="path">${esc(r.rel)}</td><td>${fmt(r.size)}</td></tr>`).join('');
+    return `<div class="note">备份盘有、源盘没有的文件。可能是你后来在源盘删过，或备份的是更早的版本。
+      工具<b>不会删除</b>它们；如果你确认这些照片应该存在于源盘，用下方「反向补齐」把它们复制回去。</div>
+      <div style="margin-top:10px" class="scroll" style="max-height:200px"><table>
+        <tr><th>所在文件夹（备份盘）</th><th>文件数</th><th>体积</th></tr>${g}</table></div>
+      <div style="margin-top:10px" class="scroll" style="max-height:220px"><table>
+        <tr><th>多余文件预览（前 50 条）</th><th>大小</th></tr>${sm}</table></div>`;
+  }
+  if(k==='content_dup'||k==='extra_content_dup'){
+    const rows=(k==='content_dup'?(t.content_dup||[]):(t.extra_content_dup||[]));
+    if(!rows.length) return '<div class="note">没有这类文件。</div>';
+    const sm=rows.slice(0,200).map(r=>`<tr>
+      <td class="path">${esc(r.path||r.rel)}</td>
+      <td class="path">${esc(r.peer_path||'')}</td>
+      <td>${fmt(r.size)}</td></tr>`).join('');
+    const intro = k==='content_dup'
+      ? '这些文件源盘有、备份盘没有<b>这个路径</b>，但备份盘<b>别处已有内容完全相同</b>的照片（MD5 相同）。'+
+        '复制过去只会变成两份重复，所以<b>不复制</b>。如果你想统一路径，可人工处理。'
+      : '这些文件备份盘有、源盘没有<b>这个路径</b>，但源盘<b>别处已有内容完全相同</b>的照片（MD5 相同）。'+
+        '补回源盘只会变成两份重复，所以<b>不补回</b>。';
+    return `<div class="note">${intro}</div>
+      <div style="margin-top:10px" class="scroll" style="max-height:300px"><table>
+        <tr><th>${k==='content_dup'?'源盘文件（不复制）':'备份盘文件（不补回）'}</th><th>另一端已有相同内容的路径</th><th>大小</th></tr>
+        ${sm}</table></div>
+      <div class="note">共 ${rows.length} 个，上面最多显示 200 条；完整清单见报告文件。</div>`;
+  }
+  if(k==='intra_src_dup'){
+    const rows=(t.intra_src_dup||[]);
+    if(!rows.length) return '<div class="note">没有这类文件。</div>';
+    const sm=rows.slice(0,200).map(r=>`<tr>
+      <td class="path">${esc(r.path||r.rel)}</td>
+      <td class="path">${esc(r.peer_path||'')}</td>
+      <td>${fmt(r.size)}</td></tr>`).join('');
+    return `<div class="note">这些文件在<b>源盘内部</b>就有多个相同副本（内容 MD5 一致），
+      备份盘又都没有。工具<b>只复制其中一个</b>（优先复制目录结构在备份盘已存在的那个），
+      其余的不会搬过去——否则备份盘内部也会出现同一张照片/视频的多份重复。
+      想彻底清理源盘内部的重复，请用「照片查重」工具对源盘单独查一次。</div>
+      <div style="margin-top:10px" class="scroll" style="max-height:300px"><table>
+        <tr><th>不复制这个（源盘内部重复）</th><th>保留复制的那个</th><th>大小</th></tr>
+        ${sm}</table></div>
+      <div class="note">共 ${rows.length} 个，上面最多显示 200 条；完整清单见报告文件。</div>`;
+  }
+  return `<div class="note">${{same:'两边文件完全一致，无需处理。',
+    size_diff:'源盘与备份盘都存在，但文件大小不同——可能是备份时文件还没复制完，或中途被改动过。工具不会自动覆盖，请人工核对。',
+    hash_diff:'文件大小相同但 MD5 不同，内容确实不同。同样不会自动覆盖。'}[k]}
+    <br>本项数量：<b>${t.summary[k]}</b>（详细逐条记录见报告文件）</div>`;
+}
+
+function showTab(k,i){
+  document.querySelectorAll(`.tgt[data-i="${i}"] .tab`).forEach(t=>t.classList.toggle('on',t.dataset.t===k));
+  $('tb_'+i).innerHTML=tabBody(RES.targets[i],k,i);
+}
+
+// ---- 复制（rev=false 正向 A→备份盘；rev=true 反向 备份盘→A）
+async function doCopy(i,rev){
+  const t=RES.targets[i];
+  const cnt = rev ? t.summary.extra : t.summary.missing;
+  if(!cnt){alert(rev?'没有多余文件，无需补回':'没有缺失文件，无需复制');return;}
+  const isDry = rev ? $('rdry_'+i).checked : $('dry_'+i).checked;
+  const isOvw = !rev && $('ovw_'+i).checked;
+  const src = rev ? t.dst_root : (RES.src_roots||[RES.src_root]).join(' + ');   // 复制起点(展示)
+  const dst = rev ? RES.src_root : t.dst_root;   // 复制终点
+  const bytes = rev ? t.extra_bytes : t.summary.missing_bytes;
+
+  if(!isDry && !confirm(
+      `确认反向补齐：把 ${cnt} 个文件（${fmt(bytes)}）从\n【${src}】\n复制回\n【${dst}】\n\n`+
+      `注意：这会写入源盘。源盘已存在的同名文件将跳过，此操作不会删除任何文件。`))
+    return;
+
+  showProg(isDry?'预演反向补齐计划中':'正在反向补齐到源盘');
+  // 正向补齐：src_roots 传全部源盘（多源时把只在第2个源盘的文件也补上）；
+  // 反向补齐：起点就是该备份盘（单个）。
+  const srcRoots = rev ? [t.dst_root] : (RES.src_roots||[RES.src_root]);
+  const r=await post('/api/copy',{src_roots:srcRoots,dst_root:dst,
+    rels:null,dry_run:isDry,overwrite:isOvw,verify_hash:false,reverse:rev,
+    exts:CUR_EXT});
+  if(r.error){alert(r.error);hideProg();return;}
+  JOB=r.id;poll('copy');
+  const rr=await new Promise(res=>{const f=()=>fetch('/api/job?id='+JOB).then(x=>x.json())
+    .then(j=>j.state==='running'?f():res(j));f()});
+  if(rr.state==='error'){alert('失败：'+rr.error);}
+  else if(rr.state==='done'){
+    const d=rr.result;
+    if(isDry) alert(`预演完成（未实际复制）：\n计划${rev?'补回源盘':'补到备份盘'} ${d.ok} 个文件，共 ${fmt(d.bytes_copied)}\n`+
+      `起点：${src}\n终点：${dst}\n\n确认无误后，取消勾选「先预演」再点一次即可真正复制。`);
+    else alert(`${rev?'补回源盘':'补到备份盘'}完成：\n成功 ${d.ok}　跳过 ${d.skipped}　失败 ${d.failed}\n`+
+      `写入 ${fmt(d.bytes_copied)}，耗时 ${d.elapsed.toFixed(1)} 秒\n\n建议重新扫描一次确认。`);
+  }
+}
+</script>
+</body></html>
