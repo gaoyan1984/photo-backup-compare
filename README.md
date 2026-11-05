@@ -1,5 +1,8 @@
 # 照片备份对比 / 补齐工具（双向）
 
+> **↓ 快速下载（完整运行包，开箱即用）**：[photo-backup-compare.zip](https://github.com/gaoyan1984/photo-backup-compare/releases/download/v1.0/photo-backup-compare.zip) —— 解压后双击 `启动.bat` 即可运行（自带 Python 运行时，换电脑也能跑）。
+
+
 把「主盘」和「备份盘」逐项对比，找出**两边各自缺了什么**，再按原来的目录结构和文件名**双向补齐**。
 
 - **正向**：源盘有、备份盘没有 → 复制到备份盘（补备份）
